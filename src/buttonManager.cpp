@@ -1,363 +1,248 @@
-#include "oledManager.h"
+#include "buttonManager.h"
 
 buttonManager buttons;
 
 TaskHandle_t buttonTask = NULL;
-
-// Queue and mutex handles
 QueueHandle_t buttonQueue;
 SemaphoreHandle_t buttonMutex;
 
-void buttonManager::oledDisplay()
-{
-    Action action = OLED_DISPLAY;
-    xQueueSend(buttonQueue, &action, portMAX_DELAY);
-}
+#define DEBOUNCE_TIME_MS 50
+volatile unsigned long lastDebounceTime[6] = {0}; // For debounce tracking, including the touch button
 
-void buttonManager::oledFadeOut()
+// Struct for button events
+typedef enum
 {
-    Action action = OLED_FADE_OUT;
-    xQueueSend(buttonQueue, &action, portMAX_DELAY);
-}
+    BUTTON_EVENT_PRESS
+} buttonEventType;
 
-void buttonManager::oledFadeIn()
+typedef struct
 {
-    Action action = OLED_FADE_IN;
-    xQueueSend(buttonQueue, &action, portMAX_DELAY);
-}
+    buttonType button;
+    buttonEventType event;
+} buttonEvent;
 
-void buttonManager::oledDisable()
+// Structure for button state with individual flags
+typedef struct
 {
-    Action action = OLED_DISABLE;
-    xQueueSend(buttonQueue, &action, portMAX_DELAY);
-}
+    bool confirmFlag;
+    bool exitFlag;
+    bool upFlag;
+    bool downFlag;
+    bool touchFlag;
+} buttonFlags;
 
-void buttonManager::oledEnable()
-{
-    Action action = OLED_ENABLE;
-    xQueueSend(buttonQueue, &action, portMAX_DELAY);
-}
+buttonFlags buttonStateFlags; // Store individual button flags
 
-void buttonManager::sendCustomCommand(uint8_t command)
+bool buttonManager::checkConfirm()
 {
-    ActionData actionData;
-    actionData.action = OLED_CUSTOM_COMMAND;
-    actionData.param1 = command;
-    xQueueSend(buttonQueue, &actionData, portMAX_DELAY);
-}
-
-void buttonManager::stopScrolling()
-{
-    ActionData actionData;
-    actionData.action = OLED_STOP_SCROLL;
-    xQueueSend(buttonQueue, &actionData, portMAX_DELAY);
-}
-
-void buttonManager::startScrollingLeft(uint8_t startPage, uint8_t endPage, uint8_t speed)
-{
-    ActionData actionData;
-    actionData.action = OLED_SCROLL_LEFT;
-    actionData.param1 = startPage;
-    actionData.param2 = endPage;
-    actionData.param3 = speed;
-    xQueueSend(buttonQueue, &actionData, portMAX_DELAY);
-}
-
-void buttonManager::startScrollingRight(uint8_t startPage, uint8_t endPage, uint8_t speed)
-{
-    ActionData actionData;
-    actionData.action = OLED_SCROLL_RIGHT;
-    actionData.param1 = startPage;
-    actionData.param2 = endPage;
-    actionData.param3 = speed;
-    xQueueSend(buttonQueue, &actionData, portMAX_DELAY);
-}
-
-// Communication to the display
-void disableImplementation()
-{
-    if (manager.ScreenEnabled == true)
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    if (buttonStateFlags.confirmFlag)
     {
-        manager.ScreenEnabled = false;
-        delay(100);
-        display.ssd1306_command(SSD1306_DISPLAYOFF);
-        delay(100);
+        inputDetected = true;
+        buttonStateFlags.confirmFlag = false; // Reset the confirm flag
+    }
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+bool buttonManager::checkExit()
+{
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    if (buttonStateFlags.exitFlag)
+    {
+        inputDetected = true;
+        buttonStateFlags.exitFlag = false; // Reset the exit flag
+    }
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+bool buttonManager::checkUp()
+{
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    if (buttonStateFlags.upFlag)
+    {
+        inputDetected = true;
+        buttonStateFlags.upFlag = false; // Reset the up flag
+    }
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+bool buttonManager::checkDown()
+{
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    if (buttonStateFlags.downFlag)
+    {
+        inputDetected = true;
+        buttonStateFlags.downFlag = false; // Reset the down flag
+    }
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+bool buttonManager::checkTouch()
+{
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    if (buttonStateFlags.touchFlag)
+    {
+        inputDetected = true;
+        buttonStateFlags.touchFlag = false; // Reset the touch flag
+    }
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+// Checks for any input (including touch)
+bool buttonManager::checkInput()
+{
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    if (buttonStateFlags.confirmFlag || buttonStateFlags.exitFlag ||
+        buttonStateFlags.upFlag || buttonStateFlags.downFlag ||
+        buttonStateFlags.touchFlag)
+    {
+        inputDetected = true;
+    }
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+// Checks for button input only (excluding touch)
+bool buttonManager::checkButtonInput()
+{
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    if (buttonStateFlags.confirmFlag || buttonStateFlags.exitFlag ||
+        buttonStateFlags.upFlag || buttonStateFlags.downFlag)
+    {
+        inputDetected = true;
+    }
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+// Button press functions for physical buttons
+void IRAM_ATTR buttonConfirmPress()
+{
+    unsigned long currentTime = millis();
+    if (currentTime - lastDebounceTime[BUTTON_CONFIRM] > DEBOUNCE_TIME_MS)
+    {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreTakeFromISR(buttonMutex, &xHigherPriorityTaskWoken);
+        buttonStateFlags.confirmFlag = true;
+        xSemaphoreGiveFromISR(buttonMutex, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        lastDebounceTime[BUTTON_CONFIRM] = currentTime;
     }
 }
 
-void oledEnableImplementation()
+void IRAM_ATTR buttonExitPress()
 {
-    if (manager.ScreenEnabled == false)
+    unsigned long currentTime = millis();
+    if (currentTime - lastDebounceTime[BUTTON_EXIT] > DEBOUNCE_TIME_MS)
     {
-        manager.ScreenEnabled = true;
-        delay(100);
-        display.ssd1306_command(SSD1306_DISPLAYON);
-        delay(100);
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreTakeFromISR(buttonMutex, &xHigherPriorityTaskWoken);
+        buttonStateFlags.exitFlag = true;
+        xSemaphoreGiveFromISR(buttonMutex, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        lastDebounceTime[BUTTON_EXIT] = currentTime;
     }
 }
 
-void oledDisplayImplementation()
+void IRAM_ATTR buttonUpPress()
 {
-    vTaskDelay(pdMS_TO_TICKS(1));
-    display.display();
-    vTaskDelay(pdMS_TO_TICKS(1));
-}
-
-void oledFadeOutImplementation()
-{
-    if (fading || displaying)
-        return; // Check if already fading or displaying
-
-    fading = true; // Set fading flag to true
-
-    delay(100);
-    // Fade out
-    for (int dim = 150; dim >= 1; dim -= 10)
+    unsigned long currentTime = millis();
+    if (currentTime - lastDebounceTime[BUTTON_UP] > DEBOUNCE_TIME_MS)
     {
-        display.ssd1306_command(0x81); // Contrast control command
-        display.ssd1306_command(dim);  // Set contrast value
-        delay(10);
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreTakeFromISR(buttonMutex, &xHigherPriorityTaskWoken);
+        buttonStateFlags.upFlag = true;
+        xSemaphoreGiveFromISR(buttonMutex, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        lastDebounceTime[BUTTON_UP] = currentTime;
     }
+}
 
-    delay(50);
-
-    for (int dim2 = 34; dim2 >= 1; dim2 -= 17)
+void IRAM_ATTR buttonDownPress()
+{
+    unsigned long currentTime = millis();
+    if (currentTime - lastDebounceTime[BUTTON_DOWN] > DEBOUNCE_TIME_MS)
     {
-        display.ssd1306_command(0xD9); // Pre-charge period command
-        display.ssd1306_command(dim2); // Set pre-charge period
-        delay(20);
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreTakeFromISR(buttonMutex, &xHigherPriorityTaskWoken);
+        buttonStateFlags.downFlag = true;
+        xSemaphoreGiveFromISR(buttonMutex, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        lastDebounceTime[BUTTON_DOWN] = currentTime;
     }
-    delay(100);
-
-    fading = false; // Reset fading flag
 }
 
-void oledFadeInImplementation()
+void IRAM_ATTR touchButtonHandler()
 {
-    fading = true; // Set fading flag to true
-
-    delay(100);
-    // Fade in
-    for (uint8_t dim = 1; dim <= 160; dim += 10)
+    unsigned long currentTime = millis();
+    if (currentTime - lastDebounceTime[TOUCH_BUTTON] > DEBOUNCE_TIME_MS)
     {
-        display.ssd1306_command(0x81);
-        display.ssd1306_command(dim);
-        delay(10);
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreTakeFromISR(buttonMutex, &xHigherPriorityTaskWoken);
+        buttonStateFlags.touchFlag = true;
+        xSemaphoreGiveFromISR(buttonMutex, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        lastDebounceTime[TOUCH_BUTTON] = currentTime;
     }
-
-    delay(50);
-
-    for (uint8_t dim2 = 1; dim2 <= 34; dim2 += 17)
-    {
-        display.ssd1306_command(0xD9);
-        display.ssd1306_command(dim2);
-        delay(30);
-    }
-    delay(100);
-
-    fading = false; // Reset fading flag
 }
 
-void sendCommand(uint8_t command)
-{
-    delay(10);
-    display.ssd1306_command(command);
-    delay(10);
-}
-
-// Function to start horizontal scroll left with customizable speed
-void startScrollLeftImplementation(uint8_t startPage, uint8_t endPage, uint8_t speed)
-{
-    uint8_t interval;
-    switch (speed)
-    {
-    case 5:
-        interval = 0b000;
-        break;
-    case 64:
-        interval = 0b001;
-        break;
-    case 128:
-        interval = 0b010;
-        break;
-    case 256:
-        interval = 0b011;
-        break;
-    case 3:
-        interval = 0b100;
-        break;
-    case 4:
-        interval = 0b101;
-        break;
-    case 25:
-        interval = 0b110;
-        break;
-    case 2:
-        interval = 0b111;
-        break;
-    default:
-        interval = 0b000;
-        break;
-    }
-    delay(10);
-
-    // Command for horizontal scroll left
-    sendCommand(0x27);      // Command for left horizontal scroll
-    sendCommand(0x00);      // Dummy byte
-    sendCommand(startPage); // Start page address
-    sendCommand(interval);  // Time interval
-    sendCommand(endPage);   // End page address
-    sendCommand(0x00);      // Dummy bytes
-    sendCommand(0xFF);
-    sendCommand(0x2F); // Activate scroll
-    delay(10);
-}
-
-// Function to start horizontal scroll right with customizable speed
-void startScrollRightImplementation(uint8_t startPage, uint8_t endPage, uint8_t speed)
-{
-    uint8_t interval;
-    switch (speed)
-    {
-    case 5:
-        interval = 0b000;
-        break;
-    case 64:
-        interval = 0b001;
-        break;
-    case 128:
-        interval = 0b010;
-        break;
-    case 256:
-        interval = 0b011;
-        break;
-    case 3:
-        interval = 0b100;
-        break;
-    case 4:
-        interval = 0b101;
-        break;
-    case 25:
-        interval = 0b110;
-        break;
-    case 2:
-        interval = 0b111;
-        break;
-    default:
-        interval = 0b000;
-        break;
-    }
-    delay(10);
-
-    // Command for horizontal scroll right
-    sendCommand(0x26);      // Command for right horizontal scroll
-    sendCommand(0x00);      // Dummy byte
-    sendCommand(startPage); // Start page address
-    sendCommand(interval);  // Time interval
-    sendCommand(endPage);   // End page address
-    sendCommand(0x00);      // Dummy bytes
-    sendCommand(0xFF);
-    sendCommand(0x2F); // Activate scroll
-    delay(10);
-}
-
-void stopScrollImplementation()
-{
-    delay(1);
-    display.stopscroll();
-    delay(1);
-}
-
-void customCommandImplementation(uint8_t command)
-{
-    delay(100);
-    display.ssd1306_command(command);
-    delay(100);
-}
-
-#define DEBOUNCE_TIME_MS 1
-
-unsigned long lastActionTimestamp = 0;
-Action lastAction = OLED_NO_ACTION;
-
+// Task to Process Button Events
 void buttonManagerTask(void *pvParameters)
 {
-    ActionData actionData;
+    buttonEvent event;
     while (true)
     {
-        if (xQueueReceive(buttonQueue, &actionData, portMAX_DELAY))
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // Wait for notification
+        if (xQueueReceive(buttonQueue, &event, portMAX_DELAY))
         {
-            unsigned long currentMillis = millis();
-
-            if (actionData.action != lastAction)
+            xSemaphoreTake(buttonMutex, portMAX_DELAY);
+            switch (event.button)
             {
-                xSemaphoreTake(buttonMutex, portMAX_DELAY);
-
-                switch (actionData.action)
-                {
-                case BUTTON_CONFIRM:
-                    Serial.println("Processing OLED Fade In");
-                    oledFadeInImplementation();
-                    break;
-                case BUTTON_EXIT:
-                    Serial.println("Processing OLED Fade Out");
-                    oledFadeOutImplementation();
-                    break;
-                case BUTTON_DOWN:
-                    vTaskDelay(pdMS_TO_TICKS(5));
-                    oledDisplayImplementation();
-                    break;
-                case BUTTON_UP:
-                    Serial.println("Processing OLED Enable");
-                    oledEnableImplementation();
-                    break;
-                default:
-                    Serial.println("Unknown action");
-                    break;
-                }
-
-                xSemaphoreGive(buttonMutex);
-                lastAction = actionData.action;
-                lastActionTimestamp = currentMillis;
+            case BUTTON_CONFIRM:
+                buttonStateFlags.confirmFlag = true;
+                break;
+            case BUTTON_EXIT:
+                buttonStateFlags.exitFlag = true;
+                break;
+            case BUTTON_UP:
+                buttonStateFlags.upFlag = true;
+                break;
+            case BUTTON_DOWN:
+                buttonStateFlags.downFlag = true;
+                break;
+            case TOUCH_BUTTON:
+                buttonStateFlags.touchFlag = true;
+                break;
+            default:
+                break;
             }
-            vTaskSuspend(NULL);
+            xSemaphoreGive(buttonMutex);
         }
-        vTaskDelay(pdMS_TO_TICKS(10)); // Adjust delay as needed
     }
-}
-
-void exitIntBut()
-{
-    interruptedButton = Back;
-    resumeButtonTask();
-}
-
-void confirmIntBut()
-{
-    interruptedButton = Menu;
-    resumeButtonTask();
-}
-
-void upIntBut()
-{
-    interruptedButton = Up;
-    resumeButtonTask();
-}
-
-void downIntBut()
-{
-    interruptedButton = Down;
-    resumeButtonTask();
 }
 
 void initbuttonManager()
 {
-    attachInterrupt(BUTTON_CONFIRM, confirmIntBut, LOW);
-    attachInterrupt(BUTTON_EXIT, exitIntBut, LOW);
-    attachInterrupt(BUTTON_DOWN, downIntBut, LOW);
-    attachInterrupt(BUTTON_UP, upIntBut, LOW);
+    attachInterrupt(BUTTON_CONFIRM_PIN, buttonConfirmPress, LOW);
+    attachInterrupt(BUTTON_EXIT_PIN, buttonExitPress, LOW);
+    attachInterrupt(BUTTON_UP_PIN, buttonUpPress, LOW);
+    attachInterrupt(BUTTON_DOWN_PIN, buttonDownPress, LOW);
 
-    buttonQueue = xQueueCreate(1, sizeof(ActionData));
+    touchAttachInterrupt(TOUCH_BUTTON_PIN, touchButtonHandler, TOUCH_BUTTON_THRESHOLD);
+
+    buttonQueue = xQueueCreate(10, sizeof(buttonEvent));
     buttonMutex = xSemaphoreCreateMutex();
 
     xTaskCreatePinnedToCore(
@@ -366,7 +251,7 @@ void initbuttonManager()
         10000,             /* Stack size in words. */
         NULL,              /* Parameter passed as input of the task */
         5,                 /* Priority of the task. */
-        buttonTask,        /* Task handle. */
+        &buttonTask,       /* Task handle. */
         1                  /* Core where the task should run. */
     );
 }
