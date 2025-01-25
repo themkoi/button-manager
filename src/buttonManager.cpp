@@ -27,6 +27,8 @@ typedef struct
     bool upFlag;
     bool downFlag;
     bool touchFlag;
+    bool inputFlag;
+    bool buttoninputFlag;
 } buttonFlags;
 
 buttonFlags buttonStateFlags; // Store individual button flags
@@ -126,7 +128,6 @@ bool buttonManager::checkTouch()
     return inputDetected;
 }
 
-// Checks for any input (including touch)
 bool buttonManager::checkInput()
 {
     bool inputDetected = false;
@@ -135,9 +136,10 @@ bool buttonManager::checkInput()
 
     if (buttonStateFlags.confirmFlag || buttonStateFlags.exitFlag ||
         buttonStateFlags.upFlag || buttonStateFlags.downFlag ||
-        buttonStateFlags.touchFlag)
+        buttonStateFlags.touchFlag || buttonStateFlags.inputFlag)
     {
         inputDetected = true;
+        buttonStateFlags.inputFlag = false; // Reset the flag
     }
     delay(1);
 
@@ -145,7 +147,6 @@ bool buttonManager::checkInput()
     return inputDetected;
 }
 
-// Checks for button input only (excluding touch)
 bool buttonManager::checkButtonInput()
 {
     bool inputDetected = false;
@@ -153,9 +154,11 @@ bool buttonManager::checkButtonInput()
     delay(1);
 
     if (buttonStateFlags.confirmFlag || buttonStateFlags.exitFlag ||
-        buttonStateFlags.upFlag || buttonStateFlags.downFlag)
+        buttonStateFlags.upFlag || buttonStateFlags.downFlag ||
+        buttonStateFlags.buttoninputFlag)
     {
         inputDetected = true;
+        buttonStateFlags.buttoninputFlag = false; // Reset the flag
     }
     delay(1);
 
@@ -242,18 +245,27 @@ void buttonManagerTask(void *pvParameters)
             {
             case BUTTON_CONFIRM:
                 buttonStateFlags.confirmFlag = true;
-                break;
+                buttonStateFlags.buttoninputFlag = true;
+                buttonStateFlags.inputFlag = true;
+                    break;
             case BUTTON_EXIT:
                 buttonStateFlags.exitFlag = true;
-                break;
+                buttonStateFlags.buttoninputFlag = true;
+                buttonStateFlags.inputFlag = true;
+                    break;
             case BUTTON_UP:
                 buttonStateFlags.upFlag = true;
-                break;
+                buttonStateFlags.buttoninputFlag = true;
+                buttonStateFlags.inputFlag = true;
+                    break;
             case BUTTON_DOWN:
                 buttonStateFlags.downFlag = true;
-                break;
+                buttonStateFlags.buttoninputFlag = true;
+                buttonStateFlags.inputFlag = true;
+                    break;
             case TOUCH_BUTTON:
                 buttonStateFlags.touchFlag = true;
+                buttonStateFlags.inputFlag = true;
                 break;
             default:
                 break;
