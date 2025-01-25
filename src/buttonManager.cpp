@@ -32,7 +32,7 @@ typedef struct
 buttonFlags buttonStateFlags; // Store individual button flags
 
 // Debounce time (in milliseconds)
-#define DEBOUNCE_TIME 150
+#define DEBOUNCE_TIME 50
 
 // Last press times for debouncing
 volatile uint32_t lastPressTimeConfirm = 0;
@@ -266,10 +266,10 @@ void buttonManagerTask(void *pvParameters)
 // Initialization Function
 void initbuttonManager()
 {
-    attachInterrupt(BUTTON_CONFIRM_PIN, buttonConfirmPress, FALLING);
-    attachInterrupt(BUTTON_EXIT_PIN, buttonExitPress, FALLING);
-    attachInterrupt(BUTTON_UP_PIN, buttonUpPress, FALLING);
-    attachInterrupt(BUTTON_DOWN_PIN, buttonDownPress, FALLING);
+    attachInterrupt(BUTTON_CONFIRM_PIN, buttonConfirmPress, RISING);
+    attachInterrupt(BUTTON_EXIT_PIN, buttonExitPress, RISING);
+    attachInterrupt(BUTTON_UP_PIN, buttonUpPress, RISING);
+    attachInterrupt(BUTTON_DOWN_PIN, buttonDownPress, RISING);
     touchAttachInterrupt(TOUCH_BUTTON_PIN, touchButtonHandler, TOUCH_BUTTON_THRESHOLD);
 
     buttonQueue = xQueueCreate(10, sizeof(buttonEvent));
