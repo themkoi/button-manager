@@ -26,9 +26,14 @@ typedef struct
     bool exitFlag;
     bool upFlag;
     bool downFlag;
-    bool touchFlag;
+    bool touch1Flag;
+    bool touch2Flag;
+    bool touch3Flag;
+    bool touch4Flag;
+    bool touch5Flag;
     bool inputFlag;
     bool buttoninputFlag;
+    bool touchInputFlag;
 } buttonFlags;
 
 buttonFlags buttonStateFlags; // Store individual button flags
@@ -117,10 +122,95 @@ bool buttonManager::checkTouch()
     xSemaphoreTake(buttonMutex, portMAX_DELAY);
     delay(1);
 
-    if (buttonStateFlags.touchFlag)
+    if (buttonStateFlags.touchInputFlag)
     {
         inputDetected = true;
-        buttonStateFlags.touchFlag = false;
+        buttonStateFlags.touchInputFlag = false;
+    }
+    delay(1);
+
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+bool buttonManager::checkFirstSegment()
+{
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    delay(1);
+
+    if (buttonStateFlags.touch1Flag)
+    {
+        inputDetected = true;
+        buttonStateFlags.touch1Flag = false;
+    }
+    delay(1);
+
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+bool buttonManager::checkSecondSegment()
+{
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    delay(1);
+
+    if (buttonStateFlags.touch2Flag)
+    {
+        inputDetected = true;
+        buttonStateFlags.touch2Flag = false;
+    }
+    delay(1);
+
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+bool buttonManager::checkThirdSegment()
+{
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    delay(1);
+
+    if (buttonStateFlags.touch3Flag)
+    {
+        inputDetected = true;
+        buttonStateFlags.touch3Flag = false;
+    }
+    delay(1);
+
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+bool buttonManager::checkFourthSegment()
+{
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    delay(1);
+
+    if (buttonStateFlags.touch4Flag)
+    {
+        inputDetected = true;
+        buttonStateFlags.touch4Flag = false;
+    }
+    delay(1);
+
+    xSemaphoreGive(buttonMutex);
+    return inputDetected;
+}
+
+bool buttonManager::checkFifthSegment()
+{
+    bool inputDetected = false;
+    xSemaphoreTake(buttonMutex, portMAX_DELAY);
+    delay(1);
+
+    if (buttonStateFlags.touch5Flag)
+    {
+        inputDetected = true;
+        buttonStateFlags.touch5Flag = false;
     }
     delay(1);
 
@@ -136,7 +226,7 @@ bool buttonManager::checkInput()
 
     if (buttonStateFlags.confirmFlag || buttonStateFlags.exitFlag ||
         buttonStateFlags.upFlag || buttonStateFlags.downFlag ||
-        buttonStateFlags.touchFlag || buttonStateFlags.inputFlag)
+        buttonStateFlags.touchInputFlag || buttonStateFlags.inputFlag)
     {
         inputDetected = true;
         buttonStateFlags.inputFlag = false; // Reset the flag
@@ -219,18 +309,55 @@ void IRAM_ATTR buttonDownPress()
     }
 }
 
-void IRAM_ATTR touchButtonHandler()
+void IRAM_ATTR touchButtonHandler(gpio_num_t segment)
 {
     uint32_t currentTime = millis();
     if (currentTime - lastPressTimeTouch > DEBOUNCE_TIME)
     {
         lastPressTimeTouch = currentTime;
-        buttonEvent event = {TOUCH_BUTTON, BUTTON_EVENT_PRESS};
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        xQueueSendFromISR(buttonQueue, &event, &xHigherPriorityTaskWoken);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        if (segment == TOUCH_1_SEGMENT_PIN)
+        {
+            buttonEvent event = {TOUCH_1, BUTTON_EVENT_PRESS};
+            BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+            xQueueSendFromISR(buttonQueue, &event, &xHigherPriorityTaskWoken);
+            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        }
+        else if (segment == TOUCH_2_SEGMENT_PIN)
+        {
+            buttonEvent event = {TOUCH_2, BUTTON_EVENT_PRESS};
+            BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+            xQueueSendFromISR(buttonQueue, &event, &xHigherPriorityTaskWoken);
+            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        }
+        else if (segment == TOUCH_3_SEGMENT_PIN)
+        {
+            buttonEvent event = {TOUCH_3, BUTTON_EVENT_PRESS};
+            BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+            xQueueSendFromISR(buttonQueue, &event, &xHigherPriorityTaskWoken);
+            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        }
+        else if (segment == TOUCH_4_SEGMENT_PIN)
+        {
+            buttonEvent event = {TOUCH_4, BUTTON_EVENT_PRESS};
+            BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+            xQueueSendFromISR(buttonQueue, &event, &xHigherPriorityTaskWoken);
+            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        }
+        else if (segment == TOUCH_5_SEGMENT_PIN)
+        {
+            buttonEvent event = {TOUCH_5, BUTTON_EVENT_PRESS};
+            BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+            xQueueSendFromISR(buttonQueue, &event, &xHigherPriorityTaskWoken);
+            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        }
     }
 }
+
+void IRAM_ATTR touchHandler1() { touchButtonHandler(TOUCH_1_SEGMENT_PIN); }
+void IRAM_ATTR touchHandler2() { touchButtonHandler(TOUCH_2_SEGMENT_PIN); }
+void IRAM_ATTR touchHandler3() { touchButtonHandler(TOUCH_3_SEGMENT_PIN); }
+void IRAM_ATTR touchHandler4() { touchButtonHandler(TOUCH_4_SEGMENT_PIN); }
+void IRAM_ATTR touchHandler5() { touchButtonHandler(TOUCH_5_SEGMENT_PIN); }
 
 // Task to Process Button Events
 void buttonManagerTask(void *pvParameters)
@@ -247,31 +374,53 @@ void buttonManagerTask(void *pvParameters)
                 buttonStateFlags.confirmFlag = true;
                 buttonStateFlags.buttoninputFlag = true;
                 buttonStateFlags.inputFlag = true;
-                    break;
+                break;
             case BUTTON_EXIT:
                 buttonStateFlags.exitFlag = true;
                 buttonStateFlags.buttoninputFlag = true;
                 buttonStateFlags.inputFlag = true;
-                    break;
+                break;
             case BUTTON_UP:
                 buttonStateFlags.upFlag = true;
                 buttonStateFlags.buttoninputFlag = true;
                 buttonStateFlags.inputFlag = true;
-                    break;
+                break;
             case BUTTON_DOWN:
                 buttonStateFlags.downFlag = true;
                 buttonStateFlags.buttoninputFlag = true;
                 buttonStateFlags.inputFlag = true;
-                    break;
-            case TOUCH_BUTTON:
-                buttonStateFlags.touchFlag = true;
+                break;
+            case TOUCH_1:
+                buttonStateFlags.touch1Flag = true;
                 buttonStateFlags.inputFlag = true;
+                buttonStateFlags.touchInputFlag = true;
+                break;
+            case TOUCH_2:
+                buttonStateFlags.touch2Flag = true;
+                buttonStateFlags.inputFlag = true;
+                buttonStateFlags.touchInputFlag = true;
+                break;
+            case TOUCH_3:
+                buttonStateFlags.touch3Flag = true;
+                buttonStateFlags.inputFlag = true;
+                buttonStateFlags.touchInputFlag = true;
+                break;
+            case TOUCH_4:
+                buttonStateFlags.touch4Flag = true;
+                buttonStateFlags.inputFlag = true;
+                buttonStateFlags.touchInputFlag = true;
+                break;
+            case TOUCH_5:
+                buttonStateFlags.touch5Flag = true;
+                buttonStateFlags.inputFlag = true;
+                buttonStateFlags.touchInputFlag = true;
                 break;
             default:
                 break;
             }
             xSemaphoreGive(buttonMutex);
         }
+        delay(5);
     }
 }
 
@@ -282,7 +431,11 @@ void initbuttonManager()
     attachInterrupt(BUTTON_EXIT_PIN, buttonExitPress, RISING);
     attachInterrupt(BUTTON_UP_PIN, buttonUpPress, RISING);
     attachInterrupt(BUTTON_DOWN_PIN, buttonDownPress, RISING);
-    touchAttachInterrupt(TOUCH_BUTTON_PIN, touchButtonHandler, TOUCH_BUTTON_THRESHOLD);
+    touchAttachInterrupt(TOUCH_1_SEGMENT_PIN, touchHandler1, TOUCH_1_SEGMENT_THRESHOLD);
+    touchAttachInterrupt(TOUCH_2_SEGMENT_PIN, touchHandler2, TOUCH_2_SEGMENT_THRESHOLD);
+    touchAttachInterrupt(TOUCH_3_SEGMENT_PIN, touchHandler3, TOUCH_3_SEGMENT_THRESHOLD);
+    touchAttachInterrupt(TOUCH_4_SEGMENT_PIN, touchHandler4, TOUCH_4_SEGMENT_THRESHOLD);
+    touchAttachInterrupt(TOUCH_5_SEGMENT_PIN, touchHandler5, TOUCH_5_SEGMENT_THRESHOLD);
 
     buttonQueue = xQueueCreate(10, sizeof(buttonEvent));
     buttonMutex = xSemaphoreCreateMutex();

@@ -10,8 +10,16 @@
 #define BUTTON_CONFIRM_PIN GPIO_NUM_25
 #define BUTTON_EXIT_PIN GPIO_NUM_26
 
-#define TOUCH_BUTTON_PIN 4
-#define TOUCH_BUTTON_THRESHOLD 8
+#define TOUCH_1_SEGMENT_PIN GPIO_NUM_33
+#define TOUCH_1_SEGMENT_THRESHOLD 25
+#define TOUCH_2_SEGMENT_PIN GPIO_NUM_4
+#define TOUCH_2_SEGMENT_THRESHOLD 25
+#define TOUCH_3_SEGMENT_PIN GPIO_NUM_32
+#define TOUCH_3_SEGMENT_THRESHOLD 25
+#define TOUCH_4_SEGMENT_PIN GPIO_NUM_27
+#define TOUCH_4_SEGMENT_THRESHOLD 25
+#define TOUCH_5_SEGMENT_PIN GPIO_NUM_2
+#define TOUCH_5_SEGMENT_THRESHOLD 30
 
 // Enum for actions
 typedef enum
@@ -20,7 +28,11 @@ typedef enum
     BUTTON_EXIT,
     BUTTON_UP,
     BUTTON_DOWN,
-    TOUCH_BUTTON,
+    TOUCH_1,
+    TOUCH_2,
+    TOUCH_3,
+    TOUCH_4,
+    TOUCH_5,
     NO_BUTTON
 } buttonType;
 
@@ -46,9 +58,16 @@ public:
     bool checkUp();
     bool checkDown();
     bool checkTouch();
+    bool checkFirstSegment();
+    bool checkSecondSegment();
+    bool checkThirdSegment();
+    bool checkFourthSegment();
+    bool checkFifthSegment();
     void createTask();
     bool checkButtonInput();
-bool checkInput(); private:
+    bool checkInput();
+
+private:
 };
 
 extern buttonManager buttons;
