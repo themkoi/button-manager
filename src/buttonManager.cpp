@@ -7,7 +7,6 @@ TaskHandle_t buttonTask = NULL;
 QueueHandle_t buttonQueue;
 SemaphoreHandle_t buttonSemaphore;
 
-// Button event structure
 typedef enum {
     BUTTON_EVENT_PRESS
 } buttonEventType;
@@ -34,18 +33,16 @@ typedef struct {
 
 buttonFlags buttonStateFlags;
 
-// Debounce time
 #define DEBOUNCE_TIME 50
 
-// Last press times for debouncing
 volatile uint32_t lastPressTimeConfirm = 0;
 volatile uint32_t lastPressTimeExit = 0;
 volatile uint32_t lastPressTimeUp = 0;
 volatile uint32_t lastPressTimeDown = 0;
 volatile uint32_t lastPressTimeTouch = 0;
 
-// Updated button check functions (no mutex needed anymore)
 bool buttonManager::checkConfirm() {
+    delay(5);
     if (buttonStateFlags.confirmFlag) {
         buttonStateFlags.confirmFlag = false;
         return true;
@@ -54,6 +51,7 @@ bool buttonManager::checkConfirm() {
 }
 
 bool buttonManager::checkExit() {
+    delay(5);
     if (buttonStateFlags.exitFlag) {
         buttonStateFlags.exitFlag = false;
         return true;
@@ -62,6 +60,7 @@ bool buttonManager::checkExit() {
 }
 
 bool buttonManager::checkUp() {
+    delay(5);
     if (buttonStateFlags.upFlag) {
         buttonStateFlags.upFlag = false;
         return true;
@@ -70,6 +69,7 @@ bool buttonManager::checkUp() {
 }
 
 bool buttonManager::checkDown() {
+    delay(5);
     if (buttonStateFlags.downFlag) {
         buttonStateFlags.downFlag = false;
         return true;
@@ -78,6 +78,7 @@ bool buttonManager::checkDown() {
 }
 
 bool buttonManager::checkTouch() {
+    delay(5);
     if (buttonStateFlags.touchInputFlag) {
         buttonStateFlags.touchInputFlag = false;
         return true;
@@ -86,6 +87,7 @@ bool buttonManager::checkTouch() {
 }
 
 bool buttonManager::checkFirstSegment() {
+    delay(5);
     if (buttonStateFlags.touch1Flag) {
         buttonStateFlags.touch1Flag = false;
         return true;
@@ -94,6 +96,7 @@ bool buttonManager::checkFirstSegment() {
 }
 
 bool buttonManager::checkSecondSegment() {
+    delay(5);
     if (buttonStateFlags.touch2Flag) {
         buttonStateFlags.touch2Flag = false;
         return true;
@@ -102,6 +105,7 @@ bool buttonManager::checkSecondSegment() {
 }
 
 bool buttonManager::checkThirdSegment() {
+    delay(5);
     if (buttonStateFlags.touch3Flag) {
         buttonStateFlags.touch3Flag = false;
         return true;
@@ -110,6 +114,7 @@ bool buttonManager::checkThirdSegment() {
 }
 
 bool buttonManager::checkFourthSegment() {
+    delay(5);
     if (buttonStateFlags.touch4Flag) {
         buttonStateFlags.touch4Flag = false;
         return true;
@@ -118,6 +123,7 @@ bool buttonManager::checkFourthSegment() {
 }
 
 bool buttonManager::checkFifthSegment() {
+    delay(5);
     if (buttonStateFlags.touch5Flag) {
         buttonStateFlags.touch5Flag = false;
         return true;
@@ -126,6 +132,7 @@ bool buttonManager::checkFifthSegment() {
 }
 
 bool buttonManager::checkButtonInput() {
+    delay(5);
     if (buttonStateFlags.buttoninputFlag) {
         buttonStateFlags.buttoninputFlag = false;
         return true;
@@ -134,12 +141,14 @@ bool buttonManager::checkButtonInput() {
 }
 
 bool buttonManager::checkInput() {
+    delay(5);
     if (buttonStateFlags.inputFlag) {
         buttonStateFlags.inputFlag = false;
         return true;
     }
     return false;
 }
+
 
 // ISR to handle button presses and queue the event
 void IRAM_ATTR buttonISR(buttonType btnType, volatile uint32_t &lastPressTime) {
@@ -178,12 +187,11 @@ void IRAM_ATTR touchHandler3() { touchButtonHandler(TOUCH_3); }
 void IRAM_ATTR touchHandler4() { touchButtonHandler(TOUCH_4); }
 void IRAM_ATTR touchHandler5() { touchButtonHandler(TOUCH_5); }
 
-// Task to Process Button Events
 void buttonManagerTask(void *pvParameters) {
     buttonEvent event;
     while (true) {
         if (xSemaphoreTake(buttonSemaphore, portMAX_DELAY)) {
-            while (xQueueReceive(buttonQueue, &event, 0)) {  // Process all queued events
+            while (xQueueReceive(buttonQueue, &event, 0)) {  
                 switch (event.button) {
                     case BUTTON_CONFIRM:
                         buttonStateFlags.confirmFlag = true;
@@ -238,7 +246,6 @@ void buttonManagerTask(void *pvParameters) {
     }
 }
 
-// Initialization Function
 void initbuttonManager() {
     attachInterrupt(BUTTON_CONFIRM_PIN, buttonConfirmPress, RISING);
     attachInterrupt(BUTTON_EXIT_PIN, buttonExitPress, RISING);
