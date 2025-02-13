@@ -42,7 +42,7 @@ volatile uint32_t lastPressTimeDown = 0;
 volatile uint32_t lastPressTimeTouch = 0;
 
 bool buttonManager::checkConfirm() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.confirmFlag) {
         buttonStateFlags.confirmFlag = false;
         return true;
@@ -51,7 +51,7 @@ bool buttonManager::checkConfirm() {
 }
 
 bool buttonManager::checkExit() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.exitFlag) {
         buttonStateFlags.exitFlag = false;
         return true;
@@ -60,7 +60,7 @@ bool buttonManager::checkExit() {
 }
 
 bool buttonManager::checkUp() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.upFlag) {
         buttonStateFlags.upFlag = false;
         return true;
@@ -69,7 +69,7 @@ bool buttonManager::checkUp() {
 }
 
 bool buttonManager::checkDown() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.downFlag) {
         buttonStateFlags.downFlag = false;
         return true;
@@ -78,7 +78,7 @@ bool buttonManager::checkDown() {
 }
 
 bool buttonManager::checkTouch() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.touchInputFlag) {
         buttonStateFlags.touchInputFlag = false;
         return true;
@@ -87,7 +87,7 @@ bool buttonManager::checkTouch() {
 }
 
 bool buttonManager::checkFirstSegment() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.touch1Flag) {
         buttonStateFlags.touch1Flag = false;
         return true;
@@ -96,7 +96,7 @@ bool buttonManager::checkFirstSegment() {
 }
 
 bool buttonManager::checkSecondSegment() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.touch2Flag) {
         buttonStateFlags.touch2Flag = false;
         return true;
@@ -105,7 +105,7 @@ bool buttonManager::checkSecondSegment() {
 }
 
 bool buttonManager::checkThirdSegment() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.touch3Flag) {
         buttonStateFlags.touch3Flag = false;
         return true;
@@ -114,7 +114,7 @@ bool buttonManager::checkThirdSegment() {
 }
 
 bool buttonManager::checkFourthSegment() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.touch4Flag) {
         buttonStateFlags.touch4Flag = false;
         return true;
@@ -123,7 +123,7 @@ bool buttonManager::checkFourthSegment() {
 }
 
 bool buttonManager::checkFifthSegment() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.touch5Flag) {
         buttonStateFlags.touch5Flag = false;
         return true;
@@ -132,7 +132,7 @@ bool buttonManager::checkFifthSegment() {
 }
 
 bool buttonManager::checkButtonInput() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.buttoninputFlag) {
         buttonStateFlags.buttoninputFlag = false;
         return true;
@@ -141,7 +141,7 @@ bool buttonManager::checkButtonInput() {
 }
 
 bool buttonManager::checkInput() {
-    delay(5);
+    delay(1);
     if (buttonStateFlags.inputFlag) {
         buttonStateFlags.inputFlag = false;
         return true;
