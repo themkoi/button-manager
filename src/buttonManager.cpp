@@ -33,7 +33,7 @@ typedef struct {
 
 buttonFlags buttonStateFlags;
 
-#define DEBOUNCE_TIME 50
+#define DEBOUNCE_TIME 100
 
 volatile uint32_t lastPressTimeConfirm = 0;
 volatile uint32_t lastPressTimeExit = 0;
