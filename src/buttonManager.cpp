@@ -41,8 +41,21 @@ volatile uint32_t lastPressTimeUp = 0;
 volatile uint32_t lastPressTimeDown = 0;
 volatile uint32_t lastPressTimeTouch = 0;
 
+unsigned long lastCheckConfirm = 0;
+unsigned long lastCheckExit = 0;
+unsigned long lastCheckUp = 0;
+unsigned long lastCheckDown = 0;
+const unsigned long debounceDelay = 5;
+
+bool canCheckButton(unsigned long &lastCheckTime) {
+    unsigned long currentMillis = millis();
+    if (currentMillis - lastCheckTime < debounceDelay) return false;
+    lastCheckTime = currentMillis;
+    return true;
+}
+
 bool buttonManager::checkConfirm() {
-    delay(1);
+    if (!canCheckButton(lastCheckConfirm)) return false;
     if (buttonStateFlags.confirmFlag) {
         buttonStateFlags.confirmFlag = false;
         return true;
@@ -51,7 +64,7 @@ bool buttonManager::checkConfirm() {
 }
 
 bool buttonManager::checkExit() {
-    delay(1);
+    if (!canCheckButton(lastCheckExit)) return false;
     if (buttonStateFlags.exitFlag) {
         buttonStateFlags.exitFlag = false;
         return true;
@@ -60,7 +73,7 @@ bool buttonManager::checkExit() {
 }
 
 bool buttonManager::checkUp() {
-    delay(1);
+    if (!canCheckButton(lastCheckUp)) return false;
     if (buttonStateFlags.upFlag) {
         buttonStateFlags.upFlag = false;
         return true;
@@ -69,13 +82,16 @@ bool buttonManager::checkUp() {
 }
 
 bool buttonManager::checkDown() {
-    delay(1);
+    if (!canCheckButton(lastCheckDown)) return false;
     if (buttonStateFlags.downFlag) {
         buttonStateFlags.downFlag = false;
         return true;
     }
     return false;
 }
+
+
+
 
 bool buttonManager::checkTouch() {
     delay(1);
