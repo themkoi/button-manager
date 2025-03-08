@@ -33,7 +33,7 @@ typedef struct {
 
 buttonFlags buttonStateFlags;
 
-#define DEBOUNCE_TIME 100
+#define DEBOUNCE_TIME 130
 
 volatile uint32_t lastPressTimeConfirm = 0;
 volatile uint32_t lastPressTimeExit = 0;
@@ -45,7 +45,7 @@ unsigned long lastCheckConfirm = 0;
 unsigned long lastCheckExit = 0;
 unsigned long lastCheckUp = 0;
 unsigned long lastCheckDown = 0;
-const unsigned long debounceDelay = 5;
+const unsigned long debounceDelay = 20;
 
 bool canCheckButton(unsigned long &lastCheckTime) {
     unsigned long currentMillis = millis();
