@@ -165,26 +165,6 @@ bool buttonManager::checkInput() {
     return false;
 }
 
-
-// ISR to handle button presses and queue the event
-void IRAM_ATTR buttonISR(buttonType btnType, volatile uint32_t &lastPressTime) {
-    uint32_t currentTime = millis();
-    if (currentTime - lastPressTime > DEBOUNCE_TIME) {
-        lastPressTime = currentTime;
-        buttonEvent event = {btnType, BUTTON_EVENT_PRESS};
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        xQueueSendFromISR(buttonQueue, &event, &xHigherPriorityTaskWoken);
-        xSemaphoreGiveFromISR(buttonSemaphore, &xHigherPriorityTaskWoken);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
-}
-
-void IRAM_ATTR buttonConfirmPress() { buttonISR(BUTTON_CONFIRM, lastPressTimeConfirm); }
-void IRAM_ATTR buttonExitPress() { buttonISR(BUTTON_EXIT, lastPressTimeExit); }
-void IRAM_ATTR buttonUpPress() { buttonISR(BUTTON_UP, lastPressTimeUp); }
-void IRAM_ATTR buttonDownPress() { buttonISR(BUTTON_DOWN, lastPressTimeDown); }
-
-// Touch Handler
 void IRAM_ATTR touchButtonHandler(buttonType touchBtn) {
     uint32_t currentTime = millis();
     if (currentTime - lastPressTimeTouch > DEBOUNCE_TIME) {
@@ -202,6 +182,46 @@ void IRAM_ATTR touchHandler2() { touchButtonHandler(TOUCH_2); }
 void IRAM_ATTR touchHandler3() { touchButtonHandler(TOUCH_3); }
 void IRAM_ATTR touchHandler4() { touchButtonHandler(TOUCH_4); }
 void IRAM_ATTR touchHandler5() { touchButtonHandler(TOUCH_5); }
+
+void buttonManager::setTouchInterrupt(int segmentPin, int threshold) {
+    switch(segmentPin) {
+        case TOUCH_1_SEGMENT_PIN:
+            touchAttachInterrupt(TOUCH_1_SEGMENT_PIN, touchHandler1, threshold);
+            break;
+        case TOUCH_2_SEGMENT_PIN:
+            touchAttachInterrupt(TOUCH_2_SEGMENT_PIN, touchHandler2, threshold);
+            break;
+        case TOUCH_3_SEGMENT_PIN:
+            touchAttachInterrupt(TOUCH_3_SEGMENT_PIN, touchHandler3, threshold);
+            break;
+        case TOUCH_4_SEGMENT_PIN:
+            touchAttachInterrupt(TOUCH_4_SEGMENT_PIN, touchHandler4, threshold);
+            break;
+        case TOUCH_5_SEGMENT_PIN:
+            touchAttachInterrupt(TOUCH_5_SEGMENT_PIN, touchHandler5, threshold);
+            break;
+        default:
+            break;
+    }
+}
+
+
+void IRAM_ATTR buttonISR(buttonType btnType, volatile uint32_t &lastPressTime) {
+    uint32_t currentTime = millis();
+    if (currentTime - lastPressTime > DEBOUNCE_TIME) {
+        lastPressTime = currentTime;
+        buttonEvent event = {btnType, BUTTON_EVENT_PRESS};
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xQueueSendFromISR(buttonQueue, &event, &xHigherPriorityTaskWoken);
+        xSemaphoreGiveFromISR(buttonSemaphore, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+}
+
+void IRAM_ATTR buttonConfirmPress() { buttonISR(BUTTON_CONFIRM, lastPressTimeConfirm); }
+void IRAM_ATTR buttonExitPress() { buttonISR(BUTTON_EXIT, lastPressTimeExit); }
+void IRAM_ATTR buttonUpPress() { buttonISR(BUTTON_UP, lastPressTimeUp); }
+void IRAM_ATTR buttonDownPress() { buttonISR(BUTTON_DOWN, lastPressTimeDown); }
 
 void buttonManagerTask(void *pvParameters) {
     buttonEvent event;

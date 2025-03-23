@@ -21,6 +21,18 @@
 #define TOUCH_5_SEGMENT_PIN GPIO_NUM_2
 #define TOUCH_5_SEGMENT_THRESHOLD 30
 
+#define TOUCH_1_SEGMENT_THRESHOLD_BAT 30
+#define TOUCH_2_SEGMENT_THRESHOLD_BAT 30
+#define TOUCH_3_SEGMENT_THRESHOLD_BAT 30
+#define TOUCH_4_SEGMENT_THRESHOLD_BAT 35
+#define TOUCH_5_SEGMENT_THRESHOLD_BAT 40
+
+#define TOUCH_1_SEGMENT_THRESHOLD_SLEEP 27
+#define TOUCH_2_SEGMENT_THRESHOLD_SLEEP 27
+#define TOUCH_3_SEGMENT_THRESHOLD_SLEEP 27
+#define TOUCH_4_SEGMENT_THRESHOLD_SLEEP 30
+#define TOUCH_5_SEGMENT_THRESHOLD_SLEEP 32
+
 // Enum for actions
 typedef enum
 {
@@ -66,6 +78,7 @@ public:
     void createTask();
     bool checkButtonInput();
     bool checkInput();
+    void setTouchInterrupt(int segmentPin, int threshold);
 
 private:
 };
