@@ -174,6 +174,10 @@ void IRAM_ATTR touchButtonHandler(buttonType touchBtn) {
         xQueueSendFromISR(buttonQueue, &event, &xHigherPriorityTaskWoken);
         xSemaphoreGiveFromISR(buttonSemaphore, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        eTaskState taskState = eTaskGetState(buttonTask);
+        if(taskState == eSuspended) {
+            vTaskResume(buttonTask);
+        } 
     }
 }
 
@@ -215,6 +219,10 @@ void IRAM_ATTR buttonISR(buttonType btnType, volatile uint32_t &lastPressTime) {
         xQueueSendFromISR(buttonQueue, &event, &xHigherPriorityTaskWoken);
         xSemaphoreGiveFromISR(buttonSemaphore, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        eTaskState taskState = eTaskGetState(buttonTask);
+        if(taskState == eSuspended) {
+            vTaskResume(buttonTask);
+        } 
     }
 }
 
@@ -279,6 +287,7 @@ void buttonManagerTask(void *pvParameters) {
                 }
             }
         }
+        vTaskSuspend(buttonTask);
     }
 }
 
